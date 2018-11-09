@@ -13,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Task has target ECS information, client of aws-sdk-go, command and timeout seconds.
 type Task struct {
 	awsECS ecsiface.ECSAPI
 
@@ -24,6 +25,7 @@ type Task struct {
 	Timeout            time.Duration
 }
 
+// NewTask returns a new Task struct, and initialize aws ecs API client.
 func NewTask(cluster, container, taskDefinitionName, command string, timeout time.Duration, profile, region string) (*Task, error) {
 	if cluster == "" {
 		return nil, errors.New("Cluster name is required")
