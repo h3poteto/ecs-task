@@ -1,6 +1,12 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"time"
+
+	"github.com/h3poteto/ecs-task/task"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+)
 
 type runTask struct {
 	cluster        string
@@ -11,22 +17,30 @@ type runTask struct {
 }
 
 func runTaskCmd() *cobra.Command {
-	t := &runTask{}
+	r := &runTask{}
 	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run a task on ECS",
-		Run:   t.run,
+		Run:   r.run,
 	}
 
 	flags := cmd.Flags()
-	flags.StringVarP(&t.cluster, "cluster", "c", "", "Name of ECS Cluster")
-	flags.StringVar(&t.container, "container", "", "Name of container name in task definition")
-	flags.StringVarP(&t.taskDefinition, "task-definition", "d", "", "Name of task definition to run task. Family and revision (family:revision), only Family or full ARN")
-	flags.StringVar(&t.command, "command", "", "Command which you want to run")
-	flags.IntVarP(&t.timeout, "timeout", "t", 600, "Timeout seconds")
+	flags.StringVarP(&r.cluster, "cluster", "c", "", "Name of ECS Cluster")
+	flags.StringVar(&r.container, "container", "", "Name of container name in task definition")
+	flags.StringVarP(&r.taskDefinition, "task-definition", "d", "", "Name of task definition to run task. Family and revision (family:revision), only Family or full ARN")
+	flags.StringVar(&r.command, "command", "", "Command which you want to run")
+	flags.IntVarP(&r.timeout, "timeout", "t", 600, "Timeout seconds")
 
 	return cmd
 }
 
-func (t *runTask) run(cmd *cobra.Command, args []string) {
+func (r *runTask) run(cmd *cobra.Command, args []string) {
+	profile, region := generalConfig()
+	t, err := task.NewTask(r.cluster, r.container, r.taskDefinition, r.command, (time.Duration(r.timeout) * time.Second), profile, region)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := t.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
