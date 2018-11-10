@@ -87,6 +87,7 @@ func (w *Watcher) Polling(ctx context.Context) error {
 			input := &cloudwatchlogs.GetLogEventsInput{
 				LogGroupName:  aws.String(w.Group),
 				LogStreamName: stream.LogStreamName,
+				StartFromHead: aws.Bool(true),
 				NextToken:     nextToken,
 			}
 			output, err := w.awsLogs.GetLogEvents(input)
@@ -95,15 +96,19 @@ func (w *Watcher) Polling(ctx context.Context) error {
 			}
 			// Update next token
 			nextToken = output.NextForwardToken
-			for _, event := range output.Events {
-				// AWS returns milliseconds of unix time.
-				// So we have to transfer to second.
-				timestamp := time.Unix((*event.Timestamp / 1000), 0)
-				message := *event.Message
-				fmt.Printf("[%s] %s\n", timestamp, message)
-			}
+			printEvents(output.Events)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
+	}
+}
+
+func printEvents(events []*cloudwatchlogs.OutputLogEvent) {
+	for _, event := range events {
+		// AWS returns milliseconds of unix time.
+		// So we have to transfer to second.
+		timestamp := time.Unix((*event.Timestamp / 1000), 0)
+		message := *event.Message
+		fmt.Printf("[%s] %s\n", timestamp, message)
 	}
 }
