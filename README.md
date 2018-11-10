@@ -1,3 +1,4 @@
+[![CircleCI](https://circleci.com/gh/h3poteto/ecs-task.svg?style=svg)](https://circleci.com/gh/h3poteto/ecs-task)
 [![GitHub release](http://img.shields.io/github/release/h3poteto/ecs-task.svg?style=flat-square)](https://github.com/h3poteto/ecs-task/releases)
 [![GoDoc](https://godoc.org/github.com/h3poteto/ecs-task/task?status.svg)](https://godoc.org/github.com/h3poteto/ecs-task/task)
 
