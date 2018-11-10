@@ -80,6 +80,7 @@ func (w *Watcher) Polling(ctx context.Context) error {
 		return err
 	}
 	log.Infof("Log Stream: %+v", stream)
+	fmt.Printf("Watching log stream: %s\n", *stream.Arn)
 	var nextToken *string
 	for {
 		select {
