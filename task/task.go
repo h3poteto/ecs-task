@@ -1,3 +1,54 @@
+/*
+Package task provides simple functions to run task on ECS.
+
+Usage:
+    import "github.com/h3poteto/ecs-task/task"
+
+Run a task
+
+When you want to run a task on ECS, please use this package as follows.
+
+At first, you have to get a task definition. The task definition is used to run a task.
+
+For example:
+
+    // At first you have to get a task definition.
+    taskDef, err := t.taskDefinition.DescribeTaskDefinition(t.TaskDefinitionName)
+    if err != nil {
+        return err
+    }
+
+    ctx, cancel := context.WithTimeout(context.Background(), t.Timeout)
+    defer cancel()
+
+    // Call run task API.
+    tasks, err := t.RunTask(ctx, taskDef)
+    if err != nil {
+        return err
+    }
+
+    // And wait to completion of task execution.
+    err = t.WaitTask(ctx, tasks)
+
+Polling CloudWatch Logs
+
+You can polling CloudWatch Logs log stream.
+
+For example:
+
+    // Get log group.
+    group, streamPrefix, err := t.taskDefinition.GetLogGroup(taskDef, "Container Name")
+    if err != nil {
+        return err
+    }
+
+    w := NewWatcher(group, streamPrefix+"/" + "Container Name" + "Task ID", "AWS profile name", "ap-northeast-1")
+    err = w.Polling(ctx)
+    if err != nil {
+        return err
+    }
+
+*/
 package task
 
 import (
@@ -66,7 +117,7 @@ func NewTask(cluster, container, taskDefinitionName, command string, timeout tim
 	}, nil
 }
 
-// RunTask calls run-task API.
+// RunTask calls run-task API. This function does not wait to completion of the task.
 func (t *Task) RunTask(ctx context.Context, taskDefinition *ecs.TaskDefinition) ([]*ecs.Task, error) {
 	containerOverride := &ecs.ContainerOverride{
 		Command: t.Command,
@@ -96,7 +147,7 @@ func (t *Task) RunTask(ctx context.Context, taskDefinition *ecs.TaskDefinition) 
 	return resp.Tasks, nil
 }
 
-// WaitTask waits for tasks to finish.
+// WaitTask waits completion of the task execition. If timeout occures, the function exits.
 func (t *Task) WaitTask(ctx context.Context, tasks []*ecs.Task) error {
 	log.Info("Waiting for running task...")
 
