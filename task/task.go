@@ -23,6 +23,8 @@ type Task struct {
 	taskDefinition     *TaskDefinition
 	Command            []*string
 	Timeout            time.Duration
+	profile            string
+	region             string
 }
 
 // NewTask returns a new Task struct, and initialize aws ecs API client.
@@ -59,14 +61,13 @@ func NewTask(cluster, container, taskDefinitionName, command string, timeout tim
 		taskDefinition:     taskDefinition,
 		Command:            cmd,
 		Timeout:            timeout,
+		profile:            profile,
+		region:             region,
 	}, nil
 }
 
 // RunTask calls run-task API.
-func (t *Task) RunTask(taskDefinition *ecs.TaskDefinition) ([]*ecs.Task, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), t.Timeout)
-	defer cancel()
-
+func (t *Task) RunTask(ctx context.Context, taskDefinition *ecs.TaskDefinition) ([]*ecs.Task, error) {
 	containerOverride := &ecs.ContainerOverride{
 		Command: t.Command,
 		Name:    aws.String(t.Container),
@@ -92,16 +93,11 @@ func (t *Task) RunTask(taskDefinition *ecs.TaskDefinition) ([]*ecs.Task, error) 
 		return nil, errors.New(*resp.Failures[0].Reason)
 	}
 	log.Infof("Running tasks: %+v", resp.Tasks)
-
-	err = t.waitRunning(ctx, resp.Tasks)
-	if err != nil {
-		return resp.Tasks, err
-	}
 	return resp.Tasks, nil
 }
 
-// waitRunning waits a task running.
-func (t *Task) waitRunning(ctx context.Context, tasks []*ecs.Task) error {
+// WaitTask waits for tasks to finish.
+func (t *Task) WaitTask(ctx context.Context, tasks []*ecs.Task) error {
 	log.Info("Waiting for running task...")
 
 	taskArns := []*string{}

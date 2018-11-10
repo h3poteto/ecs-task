@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  digest = "1:b004f267c7c27654c0bc12f517e75ea8e7be8cec88c5e8db8e381fe6c3f257a8"
+  digest = "1:acd66569326408293423c6e2f8e38a68de6918610613d12ca11a12b73da1a4eb"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -34,6 +34,8 @@
     "private/protocol/query/queryutil",
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
+    "service/cloudwatchlogs",
+    "service/cloudwatchlogs/cloudwatchlogsiface",
     "service/ecs",
     "service/ecs/ecsiface",
     "service/sts",
@@ -241,6 +243,8 @@
     "github.com/aws/aws-sdk-go/aws/credentials",
     "github.com/aws/aws-sdk-go/aws/defaults",
     "github.com/aws/aws-sdk-go/aws/session",
+    "github.com/aws/aws-sdk-go/service/cloudwatchlogs",
+    "github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface",
     "github.com/aws/aws-sdk-go/service/ecs",
     "github.com/aws/aws-sdk-go/service/ecs/ecsiface",
     "github.com/mattn/go-shellwords",
