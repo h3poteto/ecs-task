@@ -37,16 +37,15 @@ func TestDescribeTaskDefinition(t *testing.T) {
 }
 
 func TestGetLogGroup(t *testing.T) {
-	logConfiguration := &ecs.LogConfiguration{
-		LogDriver: aws.String("awslogs"),
-		Options: map[string]*string{
-			"awslogs-group":         aws.String("GroupName"),
-			"awslogs-stream-prefix": aws.String("LogPrefix"),
-		},
-	}
 	taskContainer := &ecs.ContainerDefinition{
-		Name:             aws.String("TaskContainer"),
-		LogConfiguration: logConfiguration,
+		Name: aws.String("TaskContainer"),
+		LogConfiguration: &ecs.LogConfiguration{
+			LogDriver: aws.String("awslogs"),
+			Options: map[string]*string{
+				"awslogs-group":         aws.String("GroupName"),
+				"awslogs-stream-prefix": aws.String("LogPrefix"),
+			},
+		},
 	}
 	dummyContainer := &ecs.ContainerDefinition{
 		Name: aws.String("DummyContainer"),
