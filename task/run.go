@@ -43,7 +43,7 @@ func (t *Task) Run() error {
 	err = t.WaitTask(ctx, tasks)
 	time.Sleep(10 * time.Second)
 	cancel()
-	return nil
+	return err
 }
 
 // buildLogStream returns a CloudWatchLog Stream name from ECS task.
