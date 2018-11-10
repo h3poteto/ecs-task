@@ -14,12 +14,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Watcher has log group information and CloudWatchLogs Client.
 type Watcher struct {
 	awsLogs cloudwatchlogsiface.CloudWatchLogsAPI
 	Group   string
 	Stream  string
 }
 
+// NewWatcher returns a Watcher struct.
 func NewWatcher(group, stream, profile, region string) *Watcher {
 	awsLogs := cloudwatchlogs.New(session.New(), newConfig(profile, region))
 	return &Watcher{
@@ -29,6 +31,7 @@ func NewWatcher(group, stream, profile, region string) *Watcher {
 	}
 }
 
+// GetStreams get cloudwatch logs streams according to log group name and stream prefix.
 func (w *Watcher) GetStreams() ([]*cloudwatchlogs.LogStream, error) {
 	input := &cloudwatchlogs.DescribeLogStreamsInput{
 		LogGroupName:        aws.String(w.Group),
@@ -42,6 +45,7 @@ func (w *Watcher) GetStreams() ([]*cloudwatchlogs.LogStream, error) {
 	return output.LogStreams, nil
 }
 
+// WaitStream waits until the log stream is generated.
 func (w *Watcher) WaitStream(ctx context.Context) (*cloudwatchlogs.LogStream, error) {
 	for {
 		select {
@@ -69,6 +73,7 @@ func (w *Watcher) WaitStream(ctx context.Context) (*cloudwatchlogs.LogStream, er
 	}
 }
 
+// Polling get log stream and print the logs with streaming.
 func (w *Watcher) Polling(ctx context.Context) error {
 	stream, err := w.WaitStream(ctx)
 	if err != nil {
