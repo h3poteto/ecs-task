@@ -56,7 +56,29 @@ $ echo $?
 1
 ```
 ## AWS IAM Policy
-TODO...
+Below is a basic IAM Policy required for ecs-task.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowUserToECSTask",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:DescribeTaskDefinition",
+        "ecs:RunTask",
+        "ecs:DescribeTasks",
+        "ecs:ListTasks",
+        "logs:DescribeLogStreams",
+        "logs:GetLogEvents",
+        "iam:PassRole"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
 
 ## License
 The package is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
