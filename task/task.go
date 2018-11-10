@@ -212,7 +212,7 @@ retry:
 }
 
 func (t *Task) checkTaskStopped(task *ecs.Task) bool {
-	if *task.DesiredStatus != "STOPPED" {
+	if *task.LastStatus != "STOPPED" {
 		return false
 	}
 	return true
