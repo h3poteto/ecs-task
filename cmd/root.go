@@ -23,6 +23,7 @@ func init() {
 
 	RootCmd.AddCommand(
 		runTaskCmd(),
+		versionCmd(),
 	)
 }
 
