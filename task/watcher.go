@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 type Watcher struct {
@@ -48,6 +49,7 @@ func (w *Watcher) WaitStream(ctx context.Context) (*cloudwatchlogs.LogStream, er
 			streams, err := w.GetStreams()
 			if aerr, ok := err.(awserr.Error); ok {
 				if aerr.Code() == "Throttling" {
+					log.Warn("Throttling")
 					time.Sleep(5 * time.Second)
 					continue
 				}
@@ -72,6 +74,7 @@ func (w *Watcher) Polling(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	log.Infof("Log Stream: %+v", stream)
 	var nextToken *string
 	for {
 		select {

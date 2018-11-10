@@ -36,7 +36,7 @@ func (t *Task) Run() error {
 		go func() {
 			defer wg.Done()
 			err := w.Polling(ctx)
-			log.Warn(err)
+			log.Error(err)
 		}()
 	}
 
