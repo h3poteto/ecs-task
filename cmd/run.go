@@ -35,7 +35,10 @@ func runTaskCmd() *cobra.Command {
 }
 
 func (r *runTask) run(cmd *cobra.Command, args []string) {
-	profile, region := generalConfig()
+	profile, region, verbose := generalConfig()
+	if !verbose {
+		log.SetLevel(log.WarnLevel)
+	}
 	t, err := task.NewTask(r.cluster, r.container, r.taskDefinition, r.command, (time.Duration(r.timeout) * time.Second), profile, region)
 	if err != nil {
 		log.Fatal(err)
