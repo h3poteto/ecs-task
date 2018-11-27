@@ -20,7 +20,10 @@ func (t *Task) Run() error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), t.Timeout)
+	ctx, cancel := context.WithCancel(context.Background())
+	if t.Timeout != 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), t.Timeout)
+	}
 	defer cancel()
 
 	tasks, err := t.RunTask(ctx, taskDef)
