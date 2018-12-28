@@ -17,8 +17,8 @@ Please check [godoc](https://godoc.org/github.com/h3poteto/ecs-task/task).
 Get binary from GitHub:
 
 ```
-$ wget https://github.com/h3poteto/ecs-task/releases/download/v0.2.0/ecs-task_v0.2.0_linux_amd64.zip
-$ unzip ecs-task_v0.2.0_linux_amd64.zip
+$ wget https://github.com/h3poteto/ecs-task/releases/download/v0.2.1/ecs-task_v0.2.1_linux_amd64.zip
+$ unzip ecs-task_v0.2.1_linux_amd64.zip
 $ ./ecs-task help
 Run a task on ECS
 
