@@ -53,6 +53,7 @@ package task
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -74,12 +75,15 @@ type Task struct {
 	taskDefinition     *TaskDefinition
 	Command            []*string
 	Timeout            time.Duration
+	LaunchType         string
+	Subnets            []*string
+	AssignPublicIP     string
 	profile            string
 	region             string
 }
 
 // NewTask returns a new Task struct, and initialize aws ecs API client.
-func NewTask(cluster, container, taskDefinitionName, command string, timeout time.Duration, profile, region string) (*Task, error) {
+func NewTask(cluster, container, taskDefinitionName, command string, fargate bool, subnetIDs string, timeout time.Duration, profile, region string) (*Task, error) {
 	if cluster == "" {
 		return nil, errors.New("Cluster name is required")
 	}
@@ -103,6 +107,18 @@ func NewTask(cluster, container, taskDefinitionName, command string, timeout tim
 	for _, c := range commands {
 		cmd = append(cmd, aws.String(c))
 	}
+	launchType := "EC2"
+	assignPublicIP := "DISABLED"
+	if fargate {
+		launchType = "FARGATE"
+		assignPublicIP = "ENABLED"
+	}
+	subnets := []*string{}
+	for _, s := range strings.Split(subnetIDs, ",") {
+		if len(s) > 0 {
+			subnets = append(subnets, aws.String(s))
+		}
+	}
 
 	return &Task{
 		awsECS:             awsECS,
@@ -112,6 +128,9 @@ func NewTask(cluster, container, taskDefinitionName, command string, timeout tim
 		taskDefinition:     taskDefinition,
 		Command:            cmd,
 		Timeout:            timeout,
+		LaunchType:         launchType,
+		Subnets:            subnets,
+		AssignPublicIP:     assignPublicIP,
 		profile:            profile,
 		region:             region,
 	}, nil
@@ -129,12 +148,31 @@ func (t *Task) RunTask(ctx context.Context, taskDefinition *ecs.TaskDefinition) 
 			containerOverride,
 		},
 	}
-
-	params := &ecs.RunTaskInput{
-		Cluster:        aws.String(t.Cluster),
-		TaskDefinition: taskDefinition.TaskDefinitionArn,
-		Overrides:      override,
+	var params *ecs.RunTaskInput
+	if len(t.Subnets) > 0 {
+		vpcConfiguration := &ecs.AwsVpcConfiguration{
+			AssignPublicIp: aws.String(t.AssignPublicIP),
+			Subnets:        t.Subnets,
+		}
+		network := &ecs.NetworkConfiguration{
+			AwsvpcConfiguration: vpcConfiguration,
+		}
+		params = &ecs.RunTaskInput{
+			Cluster:              aws.String(t.Cluster),
+			TaskDefinition:       taskDefinition.TaskDefinitionArn,
+			Overrides:            override,
+			NetworkConfiguration: network,
+			LaunchType:           aws.String(t.LaunchType),
+		}
+	} else {
+		params = &ecs.RunTaskInput{
+			Cluster:        aws.String(t.Cluster),
+			TaskDefinition: taskDefinition.TaskDefinitionArn,
+			Overrides:      override,
+			LaunchType:     aws.String(t.LaunchType),
+		}
 	}
+
 	resp, err := t.awsECS.RunTaskWithContext(ctx, params)
 	if err != nil {
 		return nil, err
