@@ -14,6 +14,7 @@ type runTask struct {
 	taskDefinition string
 	command        string
 	subnets        string
+	securityGroups string
 	fargate        bool
 	timeout        int
 }
@@ -32,6 +33,7 @@ func runTaskCmd() *cobra.Command {
 	flags.StringVarP(&r.taskDefinition, "task-definition", "d", "", "Name of task definition to run task. Family and revision (family:revision), only Family or full ARN")
 	flags.StringVar(&r.command, "command", "", "Command which you want to run")
 	flags.StringVarP(&r.subnets, "subnets", "s", "", "Provide subnet IDs with comma-separated string (subnet-12abcde,subnet-34abcde). This param is necessary, if you set farage flag.")
+	flags.StringVarP(&r.securityGroups, "security-groups", "g", "", "Provide security group IDs with comma-separated string (sg-0123asdb,sg-2345asdf), if you want to attach the security groups to ENI of the task.")
 	flags.BoolVarP(&r.fargate, "fargate", "f", false, "Whether run task with FARGATE")
 	flags.IntVarP(&r.timeout, "timeout", "t", 0, "Timeout seconds")
 
@@ -43,7 +45,7 @@ func (r *runTask) run(cmd *cobra.Command, args []string) {
 	if !verbose {
 		log.SetLevel(log.WarnLevel)
 	}
-	t, err := task.NewTask(r.cluster, r.container, r.taskDefinition, r.command, r.fargate, r.subnets, (time.Duration(r.timeout) * time.Second), profile, region)
+	t, err := task.NewTask(r.cluster, r.container, r.taskDefinition, r.command, r.fargate, r.subnets, r.securityGroups, (time.Duration(r.timeout) * time.Second), profile, region)
 	if err != nil {
 		log.Fatal(err)
 	}
