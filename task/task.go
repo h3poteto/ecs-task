@@ -87,6 +87,8 @@ type Task struct {
 	// If you set Fargate as launch type, you have to set your subnet IDs.
 	// Because Fargate demands awsvpc as network configuration, so subnet IDs are required.
 	Subnets []*string
+	// If you want to attach the security groups to ENI of the task, please set this.
+	SecurityGroups []*string
 	// If you don't enable this flag, the task access the internet throguth NAT gateway.
 	// Please read more information: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-networking.html
 	AssignPublicIP string
@@ -97,7 +99,7 @@ type Task struct {
 // NewTask returns a new Task struct, and initialize aws ecs API client.
 // If you want to run the task as Fargate, please provide fargate flag to true, and your subnet IDs for awsvpc.
 // If you don't want to run the task as Fargate, please provide empty string for subnetIDs.
-func NewTask(cluster, container, taskDefinitionName, command string, fargate bool, subnetIDs string, timeout time.Duration, profile, region string) (*Task, error) {
+func NewTask(cluster, container, taskDefinitionName, command string, fargate bool, subnetIDs, securityGroupIDs string, timeout time.Duration, profile, region string) (*Task, error) {
 	if cluster == "" {
 		return nil, errors.New("Cluster name is required")
 	}
@@ -133,6 +135,12 @@ func NewTask(cluster, container, taskDefinitionName, command string, fargate boo
 			subnets = append(subnets, aws.String(s))
 		}
 	}
+	securityGroups := []*string{}
+	for _, g := range strings.Split(securityGroupIDs, ",") {
+		if len(g) > 0 {
+			securityGroups = append(securityGroups, aws.String(g))
+		}
+	}
 
 	return &Task{
 		awsECS:             awsECS,
@@ -144,6 +152,7 @@ func NewTask(cluster, container, taskDefinitionName, command string, fargate boo
 		Timeout:            timeout,
 		LaunchType:         launchType,
 		Subnets:            subnets,
+		SecurityGroups:     securityGroups,
 		AssignPublicIP:     assignPublicIP,
 		profile:            profile,
 		region:             region,
@@ -167,6 +176,7 @@ func (t *Task) RunTask(ctx context.Context, taskDefinition *ecs.TaskDefinition) 
 		vpcConfiguration := &ecs.AwsVpcConfiguration{
 			AssignPublicIp: aws.String(t.AssignPublicIP),
 			Subnets:        t.Subnets,
+			SecurityGroups: t.SecurityGroups,
 		}
 		network := &ecs.NetworkConfiguration{
 			AwsvpcConfiguration: vpcConfiguration,
