@@ -12,6 +12,8 @@ At first, you have to get a task definition. The task definition is used to run 
 
 For example:
 
+    t, err := task.NewTask("cluster-name", "container-name", "task-definition-arn or family", "commands", false, "", 300 * time.Second, "profile", "region")
+
     // At first you have to get a task definition.
     taskDef, err := t.taskDefinition.DescribeTaskDefinition(t.TaskDefinitionName)
     if err != nil {
@@ -53,6 +55,7 @@ package task
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -68,18 +71,33 @@ import (
 type Task struct {
 	awsECS ecsiface.ECSAPI
 
-	Cluster            string
-	Container          string
+	// ECS Cluster where you want to run the task.
+	Cluster string
+	// Container name which you want to run. Sometimes Task Definition has some container. So this package have to determine the container for run task.
+	Container string
+	// Name of Task Definition. You can provide full ARN, family or family:revision.
 	TaskDefinitionName string
 	taskDefinition     *TaskDefinition
-	Command            []*string
-	Timeout            time.Duration
-	profile            string
-	region             string
+	// Command which you want to run.
+	Command []*string
+	// If you set 0, timeout is ignored.
+	Timeout time.Duration
+	// EC2 or Fargate
+	LaunchType string
+	// If you set Fargate as launch type, you have to set your subnet IDs.
+	// Because Fargate demands awsvpc as network configuration, so subnet IDs are required.
+	Subnets []*string
+	// If you don't enable this flag, the task access the internet throguth NAT gateway.
+	// Please read more information: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-networking.html
+	AssignPublicIP string
+	profile        string
+	region         string
 }
 
 // NewTask returns a new Task struct, and initialize aws ecs API client.
-func NewTask(cluster, container, taskDefinitionName, command string, timeout time.Duration, profile, region string) (*Task, error) {
+// If you want to run the task as Fargate, please provide fargate flag to true, and your subnet IDs for awsvpc.
+// If you don't want to run the task as Fargate, please provide empty string for subnetIDs.
+func NewTask(cluster, container, taskDefinitionName, command string, fargate bool, subnetIDs string, timeout time.Duration, profile, region string) (*Task, error) {
 	if cluster == "" {
 		return nil, errors.New("Cluster name is required")
 	}
@@ -103,6 +121,18 @@ func NewTask(cluster, container, taskDefinitionName, command string, timeout tim
 	for _, c := range commands {
 		cmd = append(cmd, aws.String(c))
 	}
+	launchType := "EC2"
+	assignPublicIP := "DISABLED"
+	if fargate {
+		launchType = "FARGATE"
+		assignPublicIP = "ENABLED"
+	}
+	subnets := []*string{}
+	for _, s := range strings.Split(subnetIDs, ",") {
+		if len(s) > 0 {
+			subnets = append(subnets, aws.String(s))
+		}
+	}
 
 	return &Task{
 		awsECS:             awsECS,
@@ -112,6 +142,9 @@ func NewTask(cluster, container, taskDefinitionName, command string, timeout tim
 		taskDefinition:     taskDefinition,
 		Command:            cmd,
 		Timeout:            timeout,
+		LaunchType:         launchType,
+		Subnets:            subnets,
+		AssignPublicIP:     assignPublicIP,
 		profile:            profile,
 		region:             region,
 	}, nil
@@ -129,12 +162,31 @@ func (t *Task) RunTask(ctx context.Context, taskDefinition *ecs.TaskDefinition) 
 			containerOverride,
 		},
 	}
-
-	params := &ecs.RunTaskInput{
-		Cluster:        aws.String(t.Cluster),
-		TaskDefinition: taskDefinition.TaskDefinitionArn,
-		Overrides:      override,
+	var params *ecs.RunTaskInput
+	if len(t.Subnets) > 0 {
+		vpcConfiguration := &ecs.AwsVpcConfiguration{
+			AssignPublicIp: aws.String(t.AssignPublicIP),
+			Subnets:        t.Subnets,
+		}
+		network := &ecs.NetworkConfiguration{
+			AwsvpcConfiguration: vpcConfiguration,
+		}
+		params = &ecs.RunTaskInput{
+			Cluster:              aws.String(t.Cluster),
+			TaskDefinition:       taskDefinition.TaskDefinitionArn,
+			Overrides:            override,
+			NetworkConfiguration: network,
+			LaunchType:           aws.String(t.LaunchType),
+		}
+	} else {
+		params = &ecs.RunTaskInput{
+			Cluster:        aws.String(t.Cluster),
+			TaskDefinition: taskDefinition.TaskDefinitionArn,
+			Overrides:      override,
+			LaunchType:     aws.String(t.LaunchType),
+		}
 	}
+
 	resp, err := t.awsECS.RunTaskWithContext(ctx, params)
 	if err != nil {
 		return nil, err
