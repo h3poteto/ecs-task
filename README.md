@@ -56,6 +56,13 @@ exit status 1
 $ echo $?
 1
 ```
+
+If you want to run the task as Fargate, please provide fargate flag and your subnet IDs.
+
+```
+$ ./ecs-task run --cluster=base-default-prd --container=task --task-definition=fascia-web-prd-task --command='echo "hoge"' --fargate=true --subnets='subnet-12easdb,subnet-34asbdf' --region=ap-northeast-1
+```
+
 ## AWS IAM Policy
 Below is a basic IAM Policy required for ecs-task.
 
