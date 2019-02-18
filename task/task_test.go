@@ -17,11 +17,20 @@ type mockedRunTask struct {
 	Describe ecs.DescribeTasksOutput
 }
 
+type mockedWaitTask struct {
+	ecsiface.ECSAPI
+	Describe ecs.DescribeTasksOutput
+}
+
 func (m mockedRunTask) RunTaskWithContext(ctx aws.Context, in *ecs.RunTaskInput, opts ...request.Option) (*ecs.RunTaskOutput, error) {
 	return &m.Run, nil
 }
 
 func (m mockedRunTask) DescribeTasks(in *ecs.DescribeTasksInput) (*ecs.DescribeTasksOutput, error) {
+	return &m.Describe, nil
+}
+
+func (m mockedWaitTask) DescribeTasks(in *ecs.DescribeTasksInput) (*ecs.DescribeTasksOutput, error) {
 	return &m.Describe, nil
 }
 
@@ -48,7 +57,7 @@ func TestRunTask(t *testing.T) {
 		Tasks: []*ecs.Task{
 			&ecs.Task{
 				DesiredStatus: aws.String("STOPPED"),
-				LastStatus:    aws.String("sTOPPED"),
+				LastStatus:    aws.String("STOPPED"),
 				Containers: []*ecs.Container{
 					&ecs.Container{
 						ExitCode: aws.Int64(0),
@@ -68,6 +77,44 @@ func TestRunTask(t *testing.T) {
 	_, err := task.RunTask(ctx, &ecs.TaskDefinition{
 		TaskDefinitionArn: aws.String("task-definition-arn"),
 	})
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestWaitTask(t *testing.T) {
+	describe := ecs.DescribeTasksOutput{
+		Tasks: []*ecs.Task{
+			&ecs.Task{
+				DesiredStatus: aws.String("STOPPED"),
+				LastStatus:    aws.String("STOPPED"),
+				Containers: []*ecs.Container{
+					&ecs.Container{
+						Name:     aws.String("target"),
+						ExitCode: aws.Int64(0),
+					},
+					&ecs.Container{
+						Name:     aws.String("sidecar"),
+						ExitCode: aws.Int64(137),
+					},
+				},
+			},
+		},
+	}
+	task := &Task{
+		awsECS: mockedWaitTask{Describe: describe},
+		Command: []*string{
+			aws.String("echo"),
+		},
+		Timeout: 10 * time.Second,
+	}
+	ctx := context.Background()
+	tasks := []*ecs.Task{
+		&ecs.Task{
+			TaskArn: aws.String("test-arn"),
+		},
+	}
+	err := task.WaitTask(ctx, tasks)
 	if err != nil {
 		t.Error(err)
 	}
