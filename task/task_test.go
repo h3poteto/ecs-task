@@ -106,7 +106,8 @@ func TestWaitTask(t *testing.T) {
 		Command: []*string{
 			aws.String("echo"),
 		},
-		Timeout: 10 * time.Second,
+		Container: "target",
+		Timeout:   10 * time.Second,
 	}
 	ctx := context.Background()
 	tasks := []*ecs.Task{

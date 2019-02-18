@@ -281,13 +281,21 @@ func (t *Task) checkTaskStopped(task *ecs.Task) bool {
 }
 
 func (t *Task) checkTaskSucceeded(task *ecs.Task) (int64, bool, error) {
+	var targetContainer *ecs.Container
 	for _, c := range task.Containers {
-		if c.ExitCode == nil {
-			return 1, false, errors.New("can not read exit code")
+		if *c.Name == t.Container {
+			targetContainer = c
 		}
-		if *c.ExitCode != int64(0) {
-			return *c.ExitCode, false, nil
-		}
+	}
+	if targetContainer == nil {
+		return int64(1), false, errors.New("can not find target container")
+	}
+
+	if targetContainer.ExitCode == nil {
+		return int64(1), false, errors.New("can not read exit code")
+	}
+	if *targetContainer.ExitCode != int64(0) {
+		return *targetContainer.ExitCode, false, nil
 	}
 	return int64(0), true, nil
 }
