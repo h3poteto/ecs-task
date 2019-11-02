@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/aws/aws-sdk-go v1.15.72
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/mattn/go-shellwords v1.0.3
+	github.com/mattn/go-shellwords v1.0.6
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/pkg/errors v0.8.0
 	github.com/sirupsen/logrus v1.2.0
