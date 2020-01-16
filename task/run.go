@@ -50,10 +50,10 @@ func (t *Task) Run() error {
 }
 
 // buildLogStream returns a CloudWatchLog Stream name from ECS task.
-// Task ARN format is `arn:aws:ecs:<region>:<aws_account_id>:task/c5cba4eb-5dad-405e-96db-71ef8eefe6a8`.
+// Task ARN format is `arn:aws:ecs:<region>:<aws_account_id>:task(/<cluster_name>)/c5cba4eb-5dad-405e-96db-71ef8eefe6a8`.
 // And Log Stream format is `stream_prefix/container_name/task_id`.
 func (t *Task) buildLogStream(task *ecs.Task) string {
 	arn := *task.TaskArn
-	taskRegexp := regexp.MustCompile(`task\/([a-z\d\-]+)`)
+	taskRegexp := regexp.MustCompile(`\/([a-z\d\-]+)$`)
 	return taskRegexp.FindStringSubmatch(arn)[1]
 }
