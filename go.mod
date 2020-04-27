@@ -3,7 +3,7 @@ module github.com/h3poteto/ecs-task
 go 1.13
 
 require (
-	github.com/aws/aws-sdk-go v1.28.3
+	github.com/aws/aws-sdk-go v1.30.14
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/mattn/go-shellwords v1.0.7
 	github.com/pkg/errors v0.9.1
