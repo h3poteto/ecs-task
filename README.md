@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.com/h3poteto/ecs-task.svg?branch=master)](https://travis-ci.com/h3poteto/ecs-task)
+[![Build](https://github.com/h3poteto/ecs-task/workflows/Build/badge.svg)](https://github.com/h3poteto/ecs-task/actions?query=branch%3Amaster+workflow%3ABuild)
 [![GitHub release](http://img.shields.io/github/release/h3poteto/ecs-task.svg?style=flat-square)](https://github.com/h3poteto/ecs-task/releases)
-[![GoDoc](https://godoc.org/github.com/h3poteto/ecs-task/task?status.svg)](https://godoc.org/github.com/h3poteto/ecs-task/task)
+[![GoDoc](https://pkg.go.dev/badge/github.com/h3poteto/ecs-task/pkg/task)](https://pkg.go.dev/github.com/h3poteto/ecs-task/pkg/task)
 
 # ecs-task
 
@@ -11,7 +11,7 @@
 
 This is a command line tool, but you can use `task` as a package.
 So when you write own task execition script for AWS ECS, you can embed `task` package in your golang source code and customize task recipe.
-Please check [godoc](https://godoc.org/github.com/h3poteto/ecs-task/task).
+Please check [godoc](https://pkg.go.dev/github.com/h3poteto/ecs-task/pkg/task).
 
 ## Install
 Get binary from GitHub:
