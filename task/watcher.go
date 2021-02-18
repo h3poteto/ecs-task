@@ -23,7 +23,7 @@ type Watcher struct {
 }
 
 // NewWatcher returns a Watcher struct.
-func NewWatcher(group, stream, profile, region string, timestampFormat string) *Watcher {
+func NewWatcher(group, stream, profile, region, timestampFormat string) *Watcher {
 	awsLogs := cloudwatchlogs.New(session.New(), newConfig(profile, region))
 	return &Watcher{
 		Group:           group,
