@@ -3,7 +3,7 @@ package cmd
 import (
 	"time"
 
-	"github.com/h3poteto/ecs-task/task"
+	"github.com/h3poteto/ecs-task/pkg/task"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
