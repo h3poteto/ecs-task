@@ -2,7 +2,7 @@
 Package task provides simple functions to run task on ECS.
 
 Usage:
-    import "github.com/h3poteto/ecs-task/task"
+    import "github.com/h3poteto/ecs-task/pkg/task"
 
 Run a task
 
