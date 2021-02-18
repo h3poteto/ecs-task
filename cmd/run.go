@@ -9,14 +9,15 @@ import (
 )
 
 type runTask struct {
-	cluster        string
-	container      string
-	taskDefinition string
-	command        string
-	subnets        string
-	securityGroups string
-	fargate        bool
-	timeout        int
+	cluster         string
+	container       string
+	taskDefinition  string
+	command         string
+	subnets         string
+	securityGroups  string
+	fargate         bool
+	timeout         int
+	timestampFormat string
 }
 
 func runTaskCmd() *cobra.Command {
@@ -36,6 +37,7 @@ func runTaskCmd() *cobra.Command {
 	flags.StringVarP(&r.securityGroups, "security-groups", "g", "", "Provide security group IDs with comma-separated string (sg-0123asdb,sg-2345asdf), if you want to attach the security groups to ENI of the task.")
 	flags.BoolVarP(&r.fargate, "fargate", "f", false, "Whether run task with FARGATE")
 	flags.IntVarP(&r.timeout, "timeout", "t", 0, "Timeout seconds")
+	flags.StringVarP(&r.timestampFormat, "timestamp-format", "", "[2006-01-02 15:04:05.999999999 -0700 MST]", "Format of timestamp for outputs. You should follow the style of Time.Format (see https://golang.org/pkg/time/#pkg-constants)")
 
 	return cmd
 }
@@ -45,7 +47,7 @@ func (r *runTask) run(cmd *cobra.Command, args []string) {
 	if !verbose {
 		log.SetLevel(log.WarnLevel)
 	}
-	t, err := task.NewTask(r.cluster, r.container, r.taskDefinition, r.command, r.fargate, r.subnets, r.securityGroups, (time.Duration(r.timeout) * time.Second), profile, region)
+	t, err := task.NewTask(r.cluster, r.container, r.taskDefinition, r.command, r.fargate, r.subnets, r.securityGroups, (time.Duration(r.timeout) * time.Second), r.timestampFormat, profile, region)
 	if err != nil {
 		log.Fatal(err)
 	}

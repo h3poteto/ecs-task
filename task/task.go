@@ -91,15 +91,16 @@ type Task struct {
 	SecurityGroups []*string
 	// If you don't enable this flag, the task access the internet throguth NAT gateway.
 	// Please read more information: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-networking.html
-	AssignPublicIP string
-	profile        string
-	region         string
+	AssignPublicIP  string
+	profile         string
+	region          string
+	timestampFormat string
 }
 
 // NewTask returns a new Task struct, and initialize aws ecs API client.
 // If you want to run the task as Fargate, please provide fargate flag to true, and your subnet IDs for awsvpc.
 // If you don't want to run the task as Fargate, please provide empty string for subnetIDs.
-func NewTask(cluster, container, taskDefinitionName, command string, fargate bool, subnetIDs, securityGroupIDs string, timeout time.Duration, profile, region string) (*Task, error) {
+func NewTask(cluster, container, taskDefinitionName, command string, fargate bool, subnetIDs, securityGroupIDs string, timeout time.Duration, timestampFormat, profile, region string) (*Task, error) {
 	if cluster == "" {
 		return nil, errors.New("Cluster name is required")
 	}
@@ -156,6 +157,7 @@ func NewTask(cluster, container, taskDefinitionName, command string, fargate boo
 		AssignPublicIP:     assignPublicIP,
 		profile:            profile,
 		region:             region,
+		timestampFormat:    timestampFormat,
 	}, nil
 }
 

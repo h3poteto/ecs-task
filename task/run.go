@@ -34,7 +34,7 @@ func (t *Task) Run() error {
 
 	for _, task := range tasks {
 		taskID := t.buildLogStream(task)
-		w := NewWatcher(group, streamPrefix+"/"+t.Container+"/"+taskID, t.profile, t.region)
+		w := NewWatcher(group, streamPrefix+"/"+t.Container+"/"+taskID, t.profile, t.region, t.timestampFormat)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
