@@ -16,18 +16,20 @@ import (
 
 // Watcher has log group information and CloudWatchLogs Client.
 type Watcher struct {
-	awsLogs cloudwatchlogsiface.CloudWatchLogsAPI
-	Group   string
-	Stream  string
+	awsLogs         cloudwatchlogsiface.CloudWatchLogsAPI
+	Group           string
+	Stream          string
+	timestampFormat string
 }
 
 // NewWatcher returns a Watcher struct.
-func NewWatcher(group, stream, profile, region string) *Watcher {
+func NewWatcher(group, stream, profile, region string, timestampFormat string) *Watcher {
 	awsLogs := cloudwatchlogs.New(session.New(), newConfig(profile, region))
 	return &Watcher{
-		Group:   group,
-		Stream:  stream,
-		awsLogs: awsLogs,
+		Group:           group,
+		Stream:          stream,
+		awsLogs:         awsLogs,
+		timestampFormat: timestampFormat,
 	}
 }
 
@@ -97,19 +99,23 @@ func (w *Watcher) Polling(ctx context.Context) error {
 			}
 			// Update next token
 			nextToken = output.NextForwardToken
-			printEvents(output.Events)
+			w.printEvents(output.Events)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
 }
 
-func printEvents(events []*cloudwatchlogs.OutputLogEvent) {
+func (w *Watcher) printEvents(events []*cloudwatchlogs.OutputLogEvent) {
 	for _, event := range events {
 		// AWS returns milliseconds of unix time.
 		// So we have to transfer to second.
 		timestamp := time.Unix((*event.Timestamp / 1000), 0)
 		message := *event.Message
-		fmt.Printf("[%s] %s\n", timestamp, message)
+		sTimestamp := timestamp.Format(w.timestampFormat)
+		if sTimestamp != "" {
+			sTimestamp += " "
+		}
+		fmt.Printf("%s%s\n", sTimestamp, message)
 	}
 }
