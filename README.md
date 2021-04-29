@@ -1,6 +1,7 @@
 [![Build](https://github.com/h3poteto/ecs-task/workflows/Build/badge.svg)](https://github.com/h3poteto/ecs-task/actions?query=branch%3Amaster+workflow%3ABuild)
-[![GitHub release](http://img.shields.io/github/release/h3poteto/ecs-task.svg?style=flat-square)](https://github.com/h3poteto/ecs-task/releases)
+[![GitHub release](http://img.shields.io/github/release/h3poteto/ecs-task.svg)](https://github.com/h3poteto/ecs-task/releases)
 [![GoDoc](https://pkg.go.dev/badge/github.com/h3poteto/ecs-task/pkg/task)](https://pkg.go.dev/github.com/h3poteto/ecs-task/pkg/task)
+[![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](https://renovatebot.com)
 
 # ecs-task
 
