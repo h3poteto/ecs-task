@@ -2,9 +2,15 @@
 
 OUTPUT = ecs-task
 OUTDIR = bin
-BUILD_CMD = go build -a -tags netgo -installsuffix netgo --ldflags '-extldflags "-static"'
+BUILD_CMD = go build -a -tags netgo -installsuffix netgo -ldflags \
+" \
+  -extldflags '-static' \
+  -X github.com/h3poteto/ecs-task/cmd.version=$(shell git describe --tag --abbrev=0) \
+  -X github.com/h3poteto/ecs-task/cmd.revision=$(shell git rev-list -1 HEAD) \
+  -X github.com/h3poteto/ecs-task/cmd.build=$(shell git describe --tags) \
+"
 ARCHITECTURE = amd64 arm64
-VERSION = v1.0.0
+VERSION = $(shell git describe --tag --abbrev=0)
 
 all: mac linux windows
 
