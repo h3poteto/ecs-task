@@ -115,7 +115,11 @@ func NewTask(cluster, container, taskDefinitionName, command string, fargate boo
 	if command == "" {
 		return nil, errors.New("Command is required")
 	}
-	awsECS := ecs.New(session.New(), newConfig(profile, region))
+	ses, err := session.NewSession()
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create AWS Session")
+	}
+	awsECS := ecs.New(ses, newConfig(profile, region))
 	taskDefinition := NewTaskDefinition(profile, region)
 	p := shellwords.NewParser()
 	commands, err := p.Parse(command)
