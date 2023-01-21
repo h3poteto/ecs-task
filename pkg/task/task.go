@@ -113,7 +113,7 @@ func NewTask(cluster, container, taskDefinitionName, command string, fargate boo
 		return nil, errors.New("Task definition is required")
 	}
 	if command == "" {
-		return nil, errors.New("Comamnd is reqired")
+		return nil, errors.New("Command is required")
 	}
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
 	taskDefinition := NewTaskDefinition(profile, region)
