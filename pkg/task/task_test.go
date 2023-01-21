@@ -110,12 +110,10 @@ func TestWaitTask(t *testing.T) {
 		Timeout:   10 * time.Second,
 	}
 	ctx := context.Background()
-	tasks := []*ecs.Task{
-		&ecs.Task{
+	ecstask := ecs.Task{
 			TaskArn: aws.String("test-arn"),
-		},
-	}
-	err := task.WaitTask(ctx, tasks)
+		}
+	err := task.WaitTask(ctx, &ecstask)
 	if err != nil {
 		t.Error(err)
 	}

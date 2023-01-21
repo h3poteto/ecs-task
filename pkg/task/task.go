@@ -55,6 +55,7 @@ package task
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -169,7 +170,7 @@ func NewTask(cluster, container, taskDefinitionName, command string, fargate boo
 }
 
 // RunTask calls run-task API. This function does not wait to completion of the task.
-func (t *Task) RunTask(ctx context.Context, taskDefinition *ecs.TaskDefinition) ([]*ecs.Task, error) {
+func (t *Task) RunTask(ctx context.Context, taskDefinition *ecs.TaskDefinition) (*ecs.Task, error) {
 	containerOverride := &ecs.ContainerOverride{
 		Command: t.Command,
 		Name:    aws.String(t.Container),
@@ -225,22 +226,22 @@ func (t *Task) RunTask(ctx context.Context, taskDefinition *ecs.TaskDefinition) 
 		log.Errorf("Run task error: %+v", resp.Failures)
 		return nil, errors.New(*resp.Failures[0].Reason)
 	}
-	log.Infof("Running tasks: %+v", resp.Tasks)
-	return resp.Tasks, nil
+	if len(resp.Tasks) == 1 {
+		log.Infof("Running tasks: %+v", resp.Tasks[0])
+		return resp.Tasks[0], nil
+	} else {
+		return nil, errors.New(fmt.Sprintf("Expected ecs.RunTask with Count=nil to return exactly 1 task; received %d (%s)", len(resp.Tasks), resp.Tasks))
+	}
 }
 
 // WaitTask waits completion of the task execition. If timeout occures, the function exits.
-func (t *Task) WaitTask(ctx context.Context, tasks []*ecs.Task) error {
+func (t *Task) WaitTask(ctx context.Context, task *ecs.Task) error {
 	log.Info("Waiting for running task...")
 
-	taskArns := []*string{}
-	for _, task := range tasks {
-		taskArns = append(taskArns, task.TaskArn)
-	}
 	errCh := make(chan error, 1)
 	done := make(chan struct{}, 1)
 	go func() {
-		err := t.waitExitTasks(taskArns)
+		err := t.waitExitTasks(task.TaskArn)
 		if err != nil {
 			errCh <- err
 		}
@@ -260,14 +261,14 @@ func (t *Task) WaitTask(ctx context.Context, tasks []*ecs.Task) error {
 	return nil
 }
 
-func (t *Task) waitExitTasks(taskArns []*string) error {
+func (t *Task) waitExitTasks(taskArn *string) error {
 retry:
 	for {
 		time.Sleep(5 * time.Second)
 
 		params := &ecs.DescribeTasksInput{
 			Cluster: aws.String(t.Cluster),
-			Tasks:   taskArns,
+			Tasks:   []*string {taskArn},
 		}
 		resp, err := t.awsECS.DescribeTasks(params)
 		if err != nil {

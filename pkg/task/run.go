@@ -26,24 +26,24 @@ func (t *Task) Run() error {
 	}
 	defer cancel()
 
-	tasks, err := t.RunTask(ctx, taskDef)
+	task, err := t.RunTask(ctx, taskDef)
 	if err != nil {
 		return err
 	}
 	var wg sync.WaitGroup
 
-	for _, task := range tasks {
-		taskID := t.buildLogStream(task)
-		w := NewWatcher(group, streamPrefix+"/"+t.Container+"/"+taskID, t.profile, t.region, t.timestampFormat)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			err := w.Polling(ctx)
-			log.Error(err)
-		}()
-	}
+	taskID := t.buildLogStream(task)
+	w := NewWatcher(group, streamPrefix+"/"+t.Container+"/"+taskID, t.profile, t.region, t.timestampFormat)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := w.Polling(ctx)
+		log.Error(err)
+	}()
 
-	err = t.WaitTask(ctx, tasks)
+	err = t.WaitTask(ctx, task)
+	
+
 	time.Sleep(10 * time.Second)
 	cancel()
 	return err
