@@ -109,8 +109,8 @@ func (w *Watcher) Polling(ctx context.Context) error {
 func (w *Watcher) printEvents(events []*cloudwatchlogs.OutputLogEvent) {
 	for _, event := range events {
 		// AWS returns milliseconds of unix time.
-		// So we have to transfer to second.
-		timestamp := time.Unix((*event.Timestamp / 1000), 0)
+		// So we have to transfer to second, nanoseconds.
+		timestamp := time.Unix(*event.Timestamp / 1000, *event.Timestamp % 1000 * 1000000)
 		message := *event.Message
 		sTimestamp := timestamp.Format(w.timestampFormat)
 		if sTimestamp != "" {
