@@ -22,7 +22,7 @@ func (t *Task) Run() error {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	if t.Timeout != 0 {
-		ctx, cancel = context.WithTimeout(context.Background(), t.Timeout)
+		ctx, cancel = context.WithTimeout(ctx, t.Timeout)
 	}
 	defer cancel()
 
