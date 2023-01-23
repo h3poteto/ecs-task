@@ -33,7 +33,7 @@ func (t *Task) Run() error {
 	var wg sync.WaitGroup
 
 	taskID := t.buildLogStream(task)
-	w := NewWatcher(group, streamPrefix+"/"+t.Container+"/"+taskID, t.profile, t.region, t.timestampFormat)
+	w := NewWatcher(group, streamPrefix+"/"+t.Container+"/"+taskID, t.awsLogs, t.timestampFormat)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

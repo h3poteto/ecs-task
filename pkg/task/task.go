@@ -60,7 +60,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	shellwords "github.com/mattn/go-shellwords"
@@ -71,6 +72,7 @@ import (
 // Task has target ECS information, client of aws-sdk-go, command and timeout seconds.
 type Task struct {
 	awsECS ecsiface.ECSAPI
+	awsLogs cloudwatchlogsiface.CloudWatchLogsAPI
 
 	// ECS Cluster where you want to run the task.
 	Cluster string
@@ -116,12 +118,14 @@ func NewTask(cluster, container, taskDefinitionName, command string, fargate boo
 	if command == "" {
 		return nil, errors.New("Command is required")
 	}
-	ses, err := session.NewSession()
+	sess, err := newConfig(profile, region)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create AWS Session")
 	}
-	awsECS := ecs.New(ses, newConfig(profile, region))
-	taskDefinition := NewTaskDefinition(profile, region)
+	awsECS := ecs.New(sess)
+	awsLogs := cloudwatchlogs.New(sess)
+
+	taskDefinition := NewTaskDefinition(awsECS)
 	p := shellwords.NewParser()
 	commands, err := p.Parse(command)
 	if err != nil {
@@ -152,6 +156,7 @@ func NewTask(cluster, container, taskDefinitionName, command string, fargate boo
 
 	return &Task{
 		awsECS:             awsECS,
+		awsLogs:            awsLogs,
 		Cluster:            cluster,
 		Container:          container,
 		TaskDefinitionName: taskDefinitionName,

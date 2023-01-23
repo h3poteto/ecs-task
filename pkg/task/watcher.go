@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 	"github.com/pkg/errors"
@@ -23,8 +22,7 @@ type Watcher struct {
 }
 
 // NewWatcher returns a Watcher struct.
-func NewWatcher(group, stream, profile, region, timestampFormat string) *Watcher {
-	awsLogs := cloudwatchlogs.New(session.New(), newConfig(profile, region))
+func NewWatcher(group, stream string, awsLogs cloudwatchlogsiface.CloudWatchLogsAPI, timestampFormat string) *Watcher {
 	return &Watcher{
 		Group:           group,
 		Stream:          stream,
