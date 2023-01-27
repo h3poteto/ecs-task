@@ -242,34 +242,24 @@ func (t *Task) RunTask(ctx context.Context, taskDefinition *ecs.TaskDefinition) 
 // WaitTask waits completion of the task execition. If timeout occures, the function exits.
 func (t *Task) WaitTask(ctx context.Context, task *ecs.Task) error {
 	log.Info("Waiting for running task...")
-
-	errCh := make(chan error, 1)
-	done := make(chan struct{}, 1)
-	go func() {
-		err := t.waitExitTasks(task.TaskArn)
-		if err != nil {
-			errCh <- err
+	err := t.waitExitTasks(ctx, task.TaskArn)
+	if err == context.DeadlineExceeded {
+		err = errors.New("process timeout")
 		}
-		close(done)
-	}()
-	select {
-	case err := <-errCh:
-		if err != nil {
-			return err
-		}
-	case <-done:
+	if err == nil {
 		log.Info("Run task is success")
-	case <-ctx.Done():
-		return errors.New("process timeout")
 	}
-
-	return nil
+	return err
 }
 
-func (t *Task) waitExitTasks(taskArn *string) error {
+func (t *Task) waitExitTasks(ctx context.Context, taskArn *string) error {
 retry:
 	for {
-		time.Sleep(5 * time.Second)
+		select {
+		case <- ctx.Done():
+			return ctx.Err()
+		case <- time.After(5 * time.Second):
+		}
 
 		params := &ecs.DescribeTasksInput{
 			Cluster: aws.String(t.Cluster),
