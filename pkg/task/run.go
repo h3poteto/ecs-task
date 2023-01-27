@@ -3,7 +3,6 @@ package task
 import (
 	"context"
 	"regexp"
-	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -30,13 +29,10 @@ func (t *Task) Run() error {
 	if err != nil {
 		return err
 	}
-	var wg sync.WaitGroup
 
 	taskID := t.buildLogStream(task)
 	w := NewWatcher(group, streamPrefix+"/"+t.Container+"/"+taskID, t.awsLogs, t.timestampFormat)
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
 		err := w.Polling(ctx)
 		log.Error(err)
 	}()
