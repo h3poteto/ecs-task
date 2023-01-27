@@ -32,13 +32,13 @@ func NewWatcher(group, stream string, awsLogs cloudwatchlogsiface.CloudWatchLogs
 }
 
 // GetStreams get cloudwatch logs streams according to log group name and stream prefix.
-func (w *Watcher) GetStreams() ([]*cloudwatchlogs.LogStream, error) {
+func (w *Watcher) GetStreams(ctx context.Context) ([]*cloudwatchlogs.LogStream, error) {
 	input := &cloudwatchlogs.DescribeLogStreamsInput{
 		LogGroupName:        aws.String(w.Group),
 		LogStreamNamePrefix: aws.String(w.Stream),
 		Descending:          aws.Bool(true),
 	}
-	output, err := w.awsLogs.DescribeLogStreams(input)
+	output, err := w.awsLogs.DescribeLogStreamsWithContext(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (w *Watcher) WaitStream(ctx context.Context) (*cloudwatchlogs.LogStream, er
 	for {
 		select {
 		case <-time.After(2 * time.Second):
-			streams, err := w.GetStreams()
+			streams, err := w.GetStreams(ctx)
 			if aerr, ok := err.(awserr.Error); ok {
 				if aerr.Code() == "Throttling" {
 					log.Warn("Throttling")
@@ -91,7 +91,7 @@ func (w *Watcher) Polling(ctx context.Context) error {
 				StartFromHead: aws.Bool(true),
 				NextToken:     nextToken,
 			}
-			output, err := w.awsLogs.GetLogEvents(input)
+			output, err := w.awsLogs.GetLogEventsWithContext(ctx, input)
 			if err != nil {
 				return err
 			}

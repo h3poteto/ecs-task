@@ -265,7 +265,7 @@ retry:
 			Cluster: aws.String(t.Cluster),
 			Tasks:   []*string {taskArn},
 		}
-		resp, err := t.awsECS.DescribeTasks(params)
+		resp, err := t.awsECS.DescribeTasksWithContext(ctx, params)
 		if err != nil {
 			return err
 		}
