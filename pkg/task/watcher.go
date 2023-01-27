@@ -68,7 +68,9 @@ func (w *Watcher) WaitStream(ctx context.Context) (*cloudwatchlogs.LogStream, er
 				return nil, errors.New("There are multiple streams")
 			}
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			log.Info("WaitStream: exiting loop due to Context done")
+			// discard ctx.Err(); it is normal to be Canceled
+			return nil, nil
 		}
 	}
 }
@@ -76,7 +78,7 @@ func (w *Watcher) WaitStream(ctx context.Context) (*cloudwatchlogs.LogStream, er
 // Polling get log stream and print the logs with streaming.
 func (w *Watcher) Polling(ctx context.Context) error {
 	stream, err := w.WaitStream(ctx)
-	if err != nil {
+	if err != nil || stream == nil {
 		return err
 	}
 	log.Infof("Log Stream: %+v", stream)
@@ -85,6 +87,7 @@ func (w *Watcher) Polling(ctx context.Context) error {
 	for {
 		select {
 		case <-time.After(2 * time.Second):
+			log.WithFields(log.Fields{"nextToken": nextToken}).Trace("Polling: checking logs")
 			input := &cloudwatchlogs.GetLogEventsInput{
 				LogGroupName:  aws.String(w.Group),
 				LogStreamName: stream.LogStreamName,
@@ -99,7 +102,9 @@ func (w *Watcher) Polling(ctx context.Context) error {
 			nextToken = output.NextForwardToken
 			w.printEvents(output.Events)
 		case <-ctx.Done():
-			return ctx.Err()
+			log.Info("WaitStream: exiting loop due to Context done")
+			// discard ctx.Err(); it is normal to be Canceled
+			return nil
 		}
 	}
 }

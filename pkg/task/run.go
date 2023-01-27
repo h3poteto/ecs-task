@@ -2,9 +2,13 @@ package task
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"os/signal"
 	"regexp"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,10 +24,10 @@ func (t *Task) Run() error {
 		return err
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	if t.Timeout != 0 {
-		ctx, cancel = context.WithTimeout(ctx, t.Timeout)
-	}
 	defer cancel()
+
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, os.Interrupt)
 
 	task, err := t.RunTask(ctx, taskDef)
 	if err != nil {
@@ -31,17 +35,79 @@ func (t *Task) Run() error {
 	}
 
 	taskID := t.buildLogStream(task)
+	logPollDoneChan := make(chan struct{})
+	pollLogsCtx, pollLogsCancel := context.WithCancel(ctx)
 	w := NewWatcher(group, streamPrefix+"/"+t.Container+"/"+taskID, t.awsLogs, t.timestampFormat)
 	go func() {
-		err := w.Polling(ctx)
-		log.Error(err)
+		defer close(logPollDoneChan)
+		log.Info("Polling logs")
+		err := w.Polling(pollLogsCtx)
+		if err != nil {
+			log.Errorf("Get logs thread failed: %v", err)
+		} else {
+			log.Info("Get logs thread gracefully stopping")
+		}
 	}()
 
-	err = t.WaitTask(ctx, task)
-	
+	pollTaskStopDoneChan := make(chan error)
+	pollExitCtx, pollExitCancel := context.WithCancel(ctx)
+	defer pollExitCancel()  // make go vet lostcancel happy
+	go func() {
+		defer close(pollTaskStopDoneChan)
+		err := t.WaitTask(pollExitCtx, task)
+		if err != nil {
+			log.Errorf("Task status polling thread failed: %v", err)
+		} else {
+			log.Info("Task status polling thread gracefully stopping")
+		}
+		pollTaskStopDoneChan <- err
+	}()
 
+	var timeoutChan <-chan time.Time
+	if t.Timeout > 0 {
+		timeoutChan = time.After(t.Timeout)
+	}
+
+	var stopTaskReason string
+	select {
+	case sig := <- sigchan:
+		log.WithFields(log.Fields{
+			"signal": sig.String(),
+		}).Info("Received signal; calling ecs.StopTask on task")
+		stopTaskReason = fmt.Sprintf("ecs-task propagating signal %s", sig.String())
+	case err = <- pollTaskStopDoneChan:
+		log.Info("Task stopped on its own")
+	case <- timeoutChan:
+		log.WithFields(log.Fields{
+			"timeout": t.Timeout,
+		}).Info("Run timeout; calling ecs.StopTask on task")
+	}
+	if stopTaskReason != "" {
+		params := ecs.StopTaskInput{
+			Cluster: aws.String(t.Cluster),
+			Reason: aws.String(stopTaskReason),
+			Task: task.TaskArn,
+		}
+		if _, err := t.awsECS.StopTask(&params); err != nil {
+			log.Errorf("Error calling ecs.StopTask: %v", err)
+		}
+		log.Info("After esc.StopTask; waiting up to 60s for task to stop")
+		select {
+		// wait for the default ECS_CONTAINER_STOP_TIMEOUT (=30s) + an additional 30s
+		case <- time.After(60 * time.Second):
+			log.Info("Task is still not done after 60s; giving up on checking its status")
+			pollExitCancel()
+			err = <- pollTaskStopDoneChan
+		case err = <- pollTaskStopDoneChan:
+		}
+	}
+
+	log.Info("Waiting 10s for more GetLogEvents")
 	time.Sleep(10 * time.Second)
-	cancel()
+	log.Info("Shutting down get logs thread")
+	pollLogsCancel()
+	<- logPollDoneChan
+	log.Info("Exiting")
 	return err
 }
 
