@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 )
@@ -14,7 +15,7 @@ type mockedWatcher struct {
 	StreamsResp cloudwatchlogs.DescribeLogStreamsOutput
 }
 
-func (m mockedWatcher) DescribeLogStreams(in *cloudwatchlogs.DescribeLogStreamsInput) (*cloudwatchlogs.DescribeLogStreamsOutput, error) {
+func (m mockedWatcher) DescribeLogStreamsWithContext(ctx context.Context, in *cloudwatchlogs.DescribeLogStreamsInput, options ...request.Option) (*cloudwatchlogs.DescribeLogStreamsOutput, error) {
 	return &m.StreamsResp, nil
 }
 

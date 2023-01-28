@@ -26,11 +26,11 @@ func (m mockedRunTask) RunTaskWithContext(ctx aws.Context, in *ecs.RunTaskInput,
 	return &m.Run, nil
 }
 
-func (m mockedRunTask) DescribeTasks(in *ecs.DescribeTasksInput) (*ecs.DescribeTasksOutput, error) {
+func (m mockedRunTask) DescribeTasksWithContext(ctx aws.Context, in *ecs.DescribeTasksInput, options ...request.Option) (*ecs.DescribeTasksOutput, error) {
 	return &m.Describe, nil
 }
 
-func (m mockedWaitTask) DescribeTasks(in *ecs.DescribeTasksInput) (*ecs.DescribeTasksOutput, error) {
+func (m mockedWaitTask) DescribeTasksWithContext(ctx aws.Context, in *ecs.DescribeTasksInput, options ...request.Option) (*ecs.DescribeTasksOutput, error) {
 	return &m.Describe, nil
 }
 
