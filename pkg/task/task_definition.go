@@ -2,7 +2,6 @@ package task
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/pkg/errors"
@@ -14,8 +13,7 @@ type TaskDefinition struct {
 }
 
 // NewTaskDefinition returns a new TaskDefinition struct, and initialize aws ecs API client.
-func NewTaskDefinition(profile, region string) *TaskDefinition {
-	awsECS := ecs.New(session.New(), newConfig(profile, region))
+func NewTaskDefinition(awsECS ecsiface.ECSAPI) *TaskDefinition {
 	return &TaskDefinition{
 		awsECS,
 	}
