@@ -3,7 +3,7 @@ module github.com/h3poteto/ecs-task
 go 1.18
 
 require (
-	github.com/aws/aws-sdk-go v1.44.14
+	github.com/aws/aws-sdk-go v1.55.5
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
