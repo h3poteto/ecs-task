@@ -55,11 +55,13 @@ package task
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	shellwords "github.com/mattn/go-shellwords"
@@ -70,6 +72,7 @@ import (
 // Task has target ECS information, client of aws-sdk-go, command and timeout seconds.
 type Task struct {
 	awsECS ecsiface.ECSAPI
+	awsLogs cloudwatchlogsiface.CloudWatchLogsAPI
 
 	// ECS Cluster where you want to run the task.
 	Cluster string
@@ -113,10 +116,16 @@ func NewTask(cluster, container, taskDefinitionName, command string, fargate boo
 		return nil, errors.New("Task definition is required")
 	}
 	if command == "" {
-		return nil, errors.New("Comamnd is reqired")
+		return nil, errors.New("Command is required")
 	}
-	awsECS := ecs.New(session.New(), newConfig(profile, region))
-	taskDefinition := NewTaskDefinition(profile, region)
+	sess, err := newConfig(profile, region)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create AWS Session")
+	}
+	awsECS := ecs.New(sess)
+	awsLogs := cloudwatchlogs.New(sess)
+
+	taskDefinition := NewTaskDefinition(awsECS)
 	p := shellwords.NewParser()
 	commands, err := p.Parse(command)
 	if err != nil {
@@ -147,6 +156,7 @@ func NewTask(cluster, container, taskDefinitionName, command string, fargate boo
 
 	return &Task{
 		awsECS:             awsECS,
+		awsLogs:            awsLogs,
 		Cluster:            cluster,
 		Container:          container,
 		TaskDefinitionName: taskDefinitionName,
@@ -165,7 +175,7 @@ func NewTask(cluster, container, taskDefinitionName, command string, fargate boo
 }
 
 // RunTask calls run-task API. This function does not wait to completion of the task.
-func (t *Task) RunTask(ctx context.Context, taskDefinition *ecs.TaskDefinition) ([]*ecs.Task, error) {
+func (t *Task) RunTask(ctx context.Context, taskDefinition *ecs.TaskDefinition) (*ecs.Task, error) {
 	containerOverride := &ecs.ContainerOverride{
 		Command: t.Command,
 		Name:    aws.String(t.Container),
@@ -221,51 +231,41 @@ func (t *Task) RunTask(ctx context.Context, taskDefinition *ecs.TaskDefinition) 
 		log.Errorf("Run task error: %+v", resp.Failures)
 		return nil, errors.New(*resp.Failures[0].Reason)
 	}
-	log.Infof("Running tasks: %+v", resp.Tasks)
-	return resp.Tasks, nil
+	if len(resp.Tasks) == 1 {
+		log.Infof("Running tasks: %+v", resp.Tasks[0])
+		return resp.Tasks[0], nil
+	} else {
+		return nil, errors.New(fmt.Sprintf("Expected ecs.RunTask with Count=nil to return exactly 1 task; received %d (%s)", len(resp.Tasks), resp.Tasks))
+	}
 }
 
 // WaitTask waits completion of the task execition. If timeout occures, the function exits.
-func (t *Task) WaitTask(ctx context.Context, tasks []*ecs.Task) error {
+func (t *Task) WaitTask(ctx context.Context, task *ecs.Task) error {
 	log.Info("Waiting for running task...")
-
-	taskArns := []*string{}
-	for _, task := range tasks {
-		taskArns = append(taskArns, task.TaskArn)
-	}
-	errCh := make(chan error, 1)
-	done := make(chan struct{}, 1)
-	go func() {
-		err := t.waitExitTasks(taskArns)
-		if err != nil {
-			errCh <- err
+	err := t.waitExitTasks(ctx, task.TaskArn)
+	if err == context.DeadlineExceeded {
+		err = errors.New("process timeout")
 		}
-		close(done)
-	}()
-	select {
-	case err := <-errCh:
-		if err != nil {
-			return err
-		}
-	case <-done:
+	if err == nil {
 		log.Info("Run task is success")
-	case <-ctx.Done():
-		return errors.New("process timeout")
 	}
-
-	return nil
+	return err
 }
 
-func (t *Task) waitExitTasks(taskArns []*string) error {
+func (t *Task) waitExitTasks(ctx context.Context, taskArn *string) error {
 retry:
 	for {
-		time.Sleep(5 * time.Second)
+		select {
+		case <- ctx.Done():
+			return ctx.Err()
+		case <- time.After(5 * time.Second):
+		}
 
 		params := &ecs.DescribeTasksInput{
 			Cluster: aws.String(t.Cluster),
-			Tasks:   taskArns,
+			Tasks:   []*string {taskArn},
 		}
-		resp, err := t.awsECS.DescribeTasks(params)
+		resp, err := t.awsECS.DescribeTasksWithContext(ctx, params)
 		if err != nil {
 			return err
 		}
