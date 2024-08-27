@@ -5,24 +5,23 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	logstypes "github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
 // Watcher has log group information and CloudWatchLogs Client.
 type Watcher struct {
-	awsLogs         cloudwatchlogsiface.CloudWatchLogsAPI
+	awsLogs         *cloudwatchlogs.Client
 	Group           string
 	Stream          string
 	timestampFormat string
 }
 
 // NewWatcher returns a Watcher struct.
-func NewWatcher(group, stream string, awsLogs cloudwatchlogsiface.CloudWatchLogsAPI, timestampFormat string) *Watcher {
+func NewWatcher(group, stream string, awsLogs *cloudwatchlogs.Client, timestampFormat string) *Watcher {
 	return &Watcher{
 		Group:           group,
 		Stream:          stream,
@@ -32,13 +31,13 @@ func NewWatcher(group, stream string, awsLogs cloudwatchlogsiface.CloudWatchLogs
 }
 
 // GetStreams get cloudwatch logs streams according to log group name and stream prefix.
-func (w *Watcher) GetStreams(ctx context.Context) ([]*cloudwatchlogs.LogStream, error) {
+func (w *Watcher) GetStreams(ctx context.Context) ([]logstypes.LogStream, error) {
 	input := &cloudwatchlogs.DescribeLogStreamsInput{
 		LogGroupName:        aws.String(w.Group),
 		LogStreamNamePrefix: aws.String(w.Stream),
 		Descending:          aws.Bool(true),
 	}
-	output, err := w.awsLogs.DescribeLogStreamsWithContext(ctx, input)
+	output, err := w.awsLogs.DescribeLogStreams(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -46,23 +45,23 @@ func (w *Watcher) GetStreams(ctx context.Context) ([]*cloudwatchlogs.LogStream, 
 }
 
 // WaitStream waits until the log stream is generated.
-func (w *Watcher) WaitStream(ctx context.Context) (*cloudwatchlogs.LogStream, error) {
+func (w *Watcher) WaitStream(ctx context.Context) (*logstypes.LogStream, error) {
 	for {
 		select {
 		case <-time.After(2 * time.Second):
 			streams, err := w.GetStreams(ctx)
-			if aerr, ok := err.(awserr.Error); ok {
-				if aerr.Code() == "Throttling" {
+			if err != nil {
+				var throttling *logstypes.ThrottlingException
+				if errors.As(err, &throttling) {
 					log.Warn("Throttling")
 					time.Sleep(5 * time.Second)
 					continue
+				} else {
+					return nil, err
 				}
 			}
-			if err != nil {
-				return nil, err
-			}
 			if len(streams) == 1 {
-				return streams[0], nil
+				return &streams[0], nil
 			}
 			if len(streams) > 1 {
 				return nil, errors.New("There are multiple streams")
@@ -94,7 +93,7 @@ func (w *Watcher) Polling(ctx context.Context) error {
 				StartFromHead: aws.Bool(true),
 				NextToken:     nextToken,
 			}
-			output, err := w.awsLogs.GetLogEventsWithContext(ctx, input)
+			output, err := w.awsLogs.GetLogEvents(ctx, input)
 			if err != nil {
 				return err
 			}
@@ -109,11 +108,11 @@ func (w *Watcher) Polling(ctx context.Context) error {
 	}
 }
 
-func (w *Watcher) printEvents(events []*cloudwatchlogs.OutputLogEvent) {
+func (w *Watcher) printEvents(events []logstypes.OutputLogEvent) {
 	for _, event := range events {
 		// AWS returns milliseconds of unix time.
 		// So we have to transfer to second, nanoseconds.
-		timestamp := time.Unix(*event.Timestamp / 1000, *event.Timestamp % 1000 * 1000000)
+		timestamp := time.Unix(*event.Timestamp/1000, *event.Timestamp%1000*1000000)
 		message := *event.Message
 		sTimestamp := timestamp.Format(w.timestampFormat)
 		if sTimestamp != "" {

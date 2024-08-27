@@ -8,14 +8,16 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	log "github.com/sirupsen/logrus"
 )
 
 // Run a command on AWS ECS and output the log.
 func (t *Task) Run() error {
-	taskDef, err := t.taskDefinition.DescribeTaskDefinition(t.TaskDefinitionName)
+	ctx := context.Background()
+	taskDef, err := t.taskDefinition.DescribeTaskDefinition(ctx, t.TaskDefinitionName)
 	if err != nil {
 		return err
 	}
@@ -51,7 +53,7 @@ func (t *Task) Run() error {
 
 	pollTaskStopDoneChan := make(chan error)
 	pollExitCtx, pollExitCancel := context.WithCancel(ctx)
-	defer pollExitCancel()  // make go vet lostcancel happy
+	defer pollExitCancel() // make go vet lostcancel happy
 	go func() {
 		defer close(pollTaskStopDoneChan)
 		err := t.WaitTask(pollExitCtx, task)
@@ -70,14 +72,14 @@ func (t *Task) Run() error {
 
 	var stopTaskReason string
 	select {
-	case sig := <- sigchan:
+	case sig := <-sigchan:
 		log.WithFields(log.Fields{
 			"signal": sig.String(),
 		}).Info("Received signal; calling ecs.StopTask on task")
 		stopTaskReason = fmt.Sprintf("ecs-task propagating signal %s", sig.String())
-	case err = <- pollTaskStopDoneChan:
+	case err = <-pollTaskStopDoneChan:
 		log.Info("Task stopped on its own")
-	case <- timeoutChan:
+	case <-timeoutChan:
 		log.WithFields(log.Fields{
 			"timeout": t.Timeout,
 		}).Info("Run timeout; calling ecs.StopTask on task")
@@ -85,20 +87,20 @@ func (t *Task) Run() error {
 	if stopTaskReason != "" {
 		params := ecs.StopTaskInput{
 			Cluster: aws.String(t.Cluster),
-			Reason: aws.String(stopTaskReason),
-			Task: task.TaskArn,
+			Reason:  aws.String(stopTaskReason),
+			Task:    task.TaskArn,
 		}
-		if _, err := t.awsECS.StopTask(&params); err != nil {
+		if _, err := t.awsECS.StopTask(ctx, &params); err != nil {
 			log.Errorf("Error calling ecs.StopTask: %v", err)
 		}
 		log.Info("After esc.StopTask; waiting up to 60s for task to stop")
 		select {
 		// wait for the default ECS_CONTAINER_STOP_TIMEOUT (=30s) + an additional 30s
-		case <- time.After(60 * time.Second):
+		case <-time.After(60 * time.Second):
 			log.Info("Task is still not done after 60s; giving up on checking its status")
 			pollExitCancel()
-			err = <- pollTaskStopDoneChan
-		case err = <- pollTaskStopDoneChan:
+			err = <-pollTaskStopDoneChan
+		case err = <-pollTaskStopDoneChan:
 		}
 	}
 
@@ -106,7 +108,7 @@ func (t *Task) Run() error {
 	time.Sleep(10 * time.Second)
 	log.Info("Shutting down get logs thread")
 	pollLogsCancel()
-	<- logPollDoneChan
+	<-logPollDoneChan
 	log.Info("Exiting")
 	return err
 }
@@ -114,7 +116,7 @@ func (t *Task) Run() error {
 // buildLogStream returns a CloudWatchLog Stream name from ECS task.
 // Task ARN format is `arn:aws:ecs:<region>:<aws_account_id>:task(/<cluster_name>)/c5cba4eb-5dad-405e-96db-71ef8eefe6a8`.
 // And Log Stream format is `stream_prefix/container_name/task_id`.
-func (t *Task) buildLogStream(task *ecs.Task) string {
+func (t *Task) buildLogStream(task *ecstypes.Task) string {
 	arn := *task.TaskArn
 	taskRegexp := regexp.MustCompile(`\/([a-z\d\-]+)$`)
 	return taskRegexp.FindStringSubmatch(arn)[1]

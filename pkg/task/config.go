@@ -1,23 +1,17 @@
 package task
 
 import (
+	"context"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 )
 
 // newConfig returns a new aws ConfigProvider
-func newConfig(profile string, region string) (client.ConfigProvider, error) {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Region: &region,
-		},
-		Profile: profile,
-		SharedConfigState: session.SharedConfigEnable,
-	})
-	return sess, err
+func newConfig(profile string, region string) (aws.Config, error) {
+	return config.LoadDefaultConfig(context.Background(), config.WithRegion(region), config.WithSharedConfigProfile(profile))
+
 }
 
 func getenv(value, key string) string {
