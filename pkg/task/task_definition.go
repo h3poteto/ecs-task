@@ -9,9 +9,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+type TaskDefinitionClient interface {
+	DescribeTaskDefinition(ctx context.Context, params *ecs.DescribeTaskDefinitionInput, optFns ...func(*ecs.Options)) (*ecs.DescribeTaskDefinitionOutput, error)
+}
+
 // TaskDefinition has client of aws-sdk-go.
 type TaskDefinition struct {
-	awsECS *ecs.Client
+	awsECS TaskDefinitionClient
 }
 
 // NewTaskDefinition returns a new TaskDefinition struct, and initialize aws ecs API client.

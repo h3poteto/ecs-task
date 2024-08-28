@@ -4,26 +4,25 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	logstypes "github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 )
 
 type mockedWatcher struct {
-	cloudwatchlogsiface.CloudWatchLogsAPI
+	LogsClient
 	StreamsResp cloudwatchlogs.DescribeLogStreamsOutput
 }
 
-func (m mockedWatcher) DescribeLogStreamsWithContext(ctx context.Context, in *cloudwatchlogs.DescribeLogStreamsInput, options ...request.Option) (*cloudwatchlogs.DescribeLogStreamsOutput, error) {
+func (m mockedWatcher) DescribeLogStreams(ctx context.Context, params *cloudwatchlogs.DescribeLogStreamsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.DescribeLogStreamsOutput, error) {
 	return &m.StreamsResp, nil
 }
 
 func TestWaitStream(t *testing.T) {
 	ctx := context.Background()
 	oneOutput := cloudwatchlogs.DescribeLogStreamsOutput{
-		LogStreams: []*cloudwatchlogs.LogStream{
-			&cloudwatchlogs.LogStream{
+		LogStreams: []logstypes.LogStream{
+			{
 				Arn:           aws.String("Arn"),
 				LogStreamName: aws.String("StreamName"),
 			},
@@ -43,12 +42,12 @@ func TestWaitStream(t *testing.T) {
 	}
 
 	twoOutput := cloudwatchlogs.DescribeLogStreamsOutput{
-		LogStreams: []*cloudwatchlogs.LogStream{
-			&cloudwatchlogs.LogStream{
+		LogStreams: []logstypes.LogStream{
+			{
 				Arn:           aws.String("Arn1"),
 				LogStreamName: aws.String("StreamName1"),
 			},
-			&cloudwatchlogs.LogStream{
+			{
 				Arn:           aws.String("Arn2"),
 				LogStreamName: aws.String("StreamName2"),
 			},

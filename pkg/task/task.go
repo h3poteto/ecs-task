@@ -68,9 +68,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type ECSClient interface {
+	RunTask(ctx context.Context, params *ecs.RunTaskInput, optFns ...func(*ecs.Options)) (*ecs.RunTaskOutput, error)
+	DescribeTasks(ctx context.Context, params *ecs.DescribeTasksInput, optFns ...func(*ecs.Options)) (*ecs.DescribeTasksOutput, error)
+	StopTask(ctx context.Context, params *ecs.StopTaskInput, optFns ...func(*ecs.Options)) (*ecs.StopTaskOutput, error)
+}
+
 // Task has target ECS information, client of aws-sdk-go, command and timeout seconds.
 type Task struct {
-	awsECS  *ecs.Client
+	awsECS  ECSClient
 	awsLogs *cloudwatchlogs.Client
 
 	// ECS Cluster where you want to run the task.
@@ -230,7 +236,7 @@ func (t *Task) RunTask(ctx context.Context, taskDefinition *ecstypes.TaskDefinit
 		log.Infof("Running tasks: %+v", resp.Tasks[0])
 		return &resp.Tasks[0], nil
 	} else {
-		return nil, errors.New(fmt.Sprintf("Expected ecs.RunTask with Count=nil to return exactly 1 task; received %d (%s)", len(resp.Tasks), resp.Tasks))
+		return nil, errors.New(fmt.Sprintf("Expected ecs.RunTask with Count=nil to return exactly 1 task; received %d (%+v)", len(resp.Tasks), resp.Tasks))
 	}
 }
 

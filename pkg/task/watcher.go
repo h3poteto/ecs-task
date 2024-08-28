@@ -12,9 +12,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type LogsClient interface {
+	DescribeLogStreams(ctx context.Context, params *cloudwatchlogs.DescribeLogStreamsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.DescribeLogStreamsOutput, error)
+	GetLogEvents(ctx context.Context, params *cloudwatchlogs.GetLogEventsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.GetLogEventsOutput, error)
+}
+
 // Watcher has log group information and CloudWatchLogs Client.
 type Watcher struct {
-	awsLogs         *cloudwatchlogs.Client
+	awsLogs         LogsClient
 	Group           string
 	Stream          string
 	timestampFormat string
