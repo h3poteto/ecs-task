@@ -3,7 +3,6 @@ module github.com/h3poteto/ecs-task
 go 1.22
 
 require (
-	github.com/aws/aws-sdk-go v1.55.5
 	github.com/aws/aws-sdk-go-v2 v1.30.4
 	github.com/aws/aws-sdk-go-v2/config v1.27.31
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.37.5
