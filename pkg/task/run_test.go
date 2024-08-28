@@ -3,8 +3,8 @@ package task
 import (
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
 
 func TestBuildLogStream(t *testing.T) {
@@ -28,7 +28,7 @@ func TestBuildLogStream(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			task := &Task{}
-			ECSTask := &ecs.Task{
+			ECSTask := &ecstypes.Task{
 				TaskArn: aws.String(tt.arn),
 			}
 			taskID := task.buildLogStream(ECSTask)

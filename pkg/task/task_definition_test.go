@@ -1,32 +1,33 @@
 package task
 
 import (
+	"context"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
 
 type mockedDescribeTaskDefinition struct {
-	ecsiface.ECSAPI
+	TaskDefinitionClient
 	Resp ecs.DescribeTaskDefinitionOutput
 }
 
-func (m mockedDescribeTaskDefinition) DescribeTaskDefinition(in *ecs.DescribeTaskDefinitionInput) (*ecs.DescribeTaskDefinitionOutput, error) {
+func (m mockedDescribeTaskDefinition) DescribeTaskDefinition(ctx context.Context, params *ecs.DescribeTaskDefinitionInput, optFns ...func(*ecs.Options)) (*ecs.DescribeTaskDefinitionOutput, error) {
 	return &m.Resp, nil
 }
 
 func TestDescribeTaskDefinition(t *testing.T) {
 	resp := ecs.DescribeTaskDefinitionOutput{
-		TaskDefinition: &ecs.TaskDefinition{
+		TaskDefinition: &ecstypes.TaskDefinition{
 			Family: aws.String("dummy"),
 		},
 	}
 	taskDefinition := &TaskDefinition{
 		awsECS: mockedDescribeTaskDefinition{Resp: resp},
 	}
-	output, err := taskDefinition.DescribeTaskDefinition("dummy")
+	output, err := taskDefinition.DescribeTaskDefinition(context.Background(), "dummy")
 	if err != nil {
 		t.Error(err)
 	}
@@ -37,21 +38,21 @@ func TestDescribeTaskDefinition(t *testing.T) {
 }
 
 func TestGetLogGroup(t *testing.T) {
-	taskContainer := &ecs.ContainerDefinition{
+	taskContainer := ecstypes.ContainerDefinition{
 		Name: aws.String("TaskContainer"),
-		LogConfiguration: &ecs.LogConfiguration{
-			LogDriver: aws.String("awslogs"),
-			Options: map[string]*string{
-				"awslogs-group":         aws.String("GroupName"),
-				"awslogs-stream-prefix": aws.String("LogPrefix"),
+		LogConfiguration: &ecstypes.LogConfiguration{
+			LogDriver: ecstypes.LogDriverAwslogs,
+			Options: map[string]string{
+				"awslogs-group":         "GroupName",
+				"awslogs-stream-prefix": "LogPrefix",
 			},
 		},
 	}
-	dummyContainer := &ecs.ContainerDefinition{
+	dummyContainer := ecstypes.ContainerDefinition{
 		Name: aws.String("DummyContainer"),
 	}
-	taskDef := &ecs.TaskDefinition{
-		ContainerDefinitions: []*ecs.ContainerDefinition{taskContainer, dummyContainer},
+	taskDef := &ecstypes.TaskDefinition{
+		ContainerDefinitions: []ecstypes.ContainerDefinition{taskContainer, dummyContainer},
 	}
 	taskDefinition := &TaskDefinition{}
 	group, prefix, err := taskDefinition.GetLogGroup(taskDef, "TaskContainer")
