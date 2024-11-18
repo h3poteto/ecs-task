@@ -13,7 +13,7 @@ At first, you have to get a task definition. The task definition is used to run 
 
 For example:
 
-	t, err := task.NewTask("cluster-name", "container-name", "task-definition-arn or family", "commands", false, "", 300 * time.Second, "profile", "region")
+	t, err := task.NewTask("cluster-name", "container-name", "task-definition-arn or family", "commands", false, "", 300 * time.Second, "profile", "region", "task-size-cpu", "task-size-memory")
 
 	// At first you have to get a task definition.
 	taskDef, err := t.taskDefinition.DescribeTaskDefinition(t.TaskDefinitionName)
@@ -105,12 +105,15 @@ type Task struct {
 	profile         string
 	region          string
 	timestampFormat string
+	// If you wat to override CPU and Memory, please set these values.
+	taskSizeCpu     string
+	taskSizeMemory  string
 }
 
 // NewTask returns a new Task struct, and initialize aws ecs API client.
 // If you want to run the task as Fargate, please provide fargate flag to true, and your subnet IDs for awsvpc.
 // If you don't want to run the task as Fargate, please provide empty string for subnetIDs.
-func NewTask(cluster, container, taskDefinitionName, command string, fargate bool, subnetIDs, securityGroupIDs, platformVersion string, timeout time.Duration, timestampFormat, profile, region string) (*Task, error) {
+func NewTask(cluster, container, taskDefinitionName, command string, fargate bool, subnetIDs, securityGroupIDs, platformVersion string, timeout time.Duration, timestampFormat, profile, region, taskSizeCpu, taskSizeMemory string) (*Task, error) {
 	if cluster == "" {
 		return nil, errors.New("Cluster name is required")
 	}
@@ -172,6 +175,8 @@ func NewTask(cluster, container, taskDefinitionName, command string, fargate boo
 		region:             region,
 		timestampFormat:    timestampFormat,
 		PlatformVersion:    platformVersion,
+		taskSizeCpu:        taskSizeCpu,
+		taskSizeMemory:     taskSizeMemory,
 	}, nil
 }
 
@@ -187,6 +192,12 @@ func (t *Task) RunTask(ctx context.Context, taskDefinition *ecstypes.TaskDefinit
 			containerOverride,
 		},
 	}
+
+	if len(t.taskSizeCpu) > 0 && len(t.taskSizeMemory) > 0 {
+		override.Cpu = aws.String(t.taskSizeCpu)
+		override.Memory = aws.String(t.taskSizeMemory)
+	}
+
 	var params *ecs.RunTaskInput
 	if len(t.Subnets) > 0 {
 		vpcConfiguration := &ecstypes.AwsVpcConfiguration{
