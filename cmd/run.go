@@ -19,6 +19,8 @@ type runTask struct {
 	timeout         int
 	timestampFormat string
 	platformVersion string
+	taskSizeCpu     string
+	taskSizeMemory  string
 }
 
 func runTaskCmd() *cobra.Command {
@@ -40,6 +42,8 @@ func runTaskCmd() *cobra.Command {
 	flags.IntVarP(&r.timeout, "timeout", "t", 0, "Timeout seconds")
 	flags.StringVarP(&r.timestampFormat, "timestamp-format", "", "[2006-01-02 15:04:05.999999999 -0700 MST]", "Format of timestamp for outputs. You should follow the style of Time.Format (see https://golang.org/pkg/time/#pkg-constants)")
 	flags.StringVarP(&r.platformVersion, "platform-version", "p", "", "The platform version that your tasks in the service are running on. A platform version is specified only for tasks using the Fargate launch type. If one isn't specified, the LATEST platform version is used by default.")
+	flags.StringVar(&r.taskSizeCpu, "task-size-cpu", "", "The hard limit of CPU units to present for the task. If both task-size-cpu and task-size-memory are set, overwrite task definition.")
+	flags.StringVar(&r.taskSizeMemory, "task-size-memory", "", "The hard limit of memory to present to the task. If both task-size-cpu and task-size-memory are set, overwrite task definition.")
 
 	return cmd
 }
@@ -49,7 +53,7 @@ func (r *runTask) run(cmd *cobra.Command, args []string) {
 	if !verbose {
 		log.SetLevel(log.WarnLevel)
 	}
-	t, err := task.NewTask(r.cluster, r.container, r.taskDefinition, r.command, r.fargate, r.subnets, r.securityGroups, r.platformVersion, (time.Duration(r.timeout) * time.Second), r.timestampFormat, profile, region)
+	t, err := task.NewTask(r.cluster, r.container, r.taskDefinition, r.command, r.fargate, r.subnets, r.securityGroups, r.platformVersion, (time.Duration(r.timeout) * time.Second), r.timestampFormat, profile, region, r.taskSizeCpu, r.taskSizeMemory)
 	if err != nil {
 		log.Fatal(err)
 	}
