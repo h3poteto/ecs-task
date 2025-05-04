@@ -22,18 +22,18 @@ build: mod
 
 mac: mod
 	@for arch in $(ARCHITECTURE); do \
-	    GOOS=darwin GOARCH=$$arch $(BUILD_CMD) -o $(OUTPUT); \
+	    GOOS=darwin GOARCH=$$arch CGO_ENABLED=0 $(BUILD_CMD) -o $(OUTPUT); \
 		zip $(OUTDIR)/$(OUTPUT)_${VERSION}_darwin_$$arch.zip $(OUTPUT); \
 	done
 
 linux: mod
 	@for arch in $(ARCHITECTURE); do \
-		GOOS=linux GOARCH=$$arch $(BUILD_CMD) -o $(OUTPUT); \
+		GOOS=linux GOARCH=$$arch CGO_ENABLED=0 $(BUILD_CMD) -o $(OUTPUT); \
 		zip $(OUTDIR)/$(OUTPUT)_${VERSION}_linux_$$arch.zip $(OUTPUT); \
 	done
 
 windows: mod
 	@for arch in $(ARCHITECTURE); do \
-		GOOS=windows GOARCH=$$arch $(BUILD_CMD) -o $(OUTPUT).exe; \
+		GOOS=windows GOARCH=$$arch CGO_ENABLED=0 $(BUILD_CMD) -o $(OUTPUT).exe; \
 		zip $(OUTDIR)/$(OUTPUT)_${VERSION}_windows_$$arch.zip $(OUTPUT).exe; \
 	done
