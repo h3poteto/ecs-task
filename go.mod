@@ -5,8 +5,8 @@ go 1.22
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.3
 	github.com/aws/aws-sdk-go-v2/config v1.29.14
-	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.48.0
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.56.2
+	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.50.0
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.57.1
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
